@@ -1,0 +1,4 @@
+import type {Transaction,MonthlySummary} from './types';
+export const money=(n:number)=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(n).replace(/\u00a0/g,' ');
+export function summary(transactions:Transaction[],month:string):MonthlySummary { const t=transactions.filter(x=>x.date.startsWith(month)); const sum=(type:string)=>t.filter(x=>x.type===type).reduce((a,x)=>a+x.amount,0); const income=sum('income'),deductions=sum('deduction'),expenses=sum('expense')+sum('debt'),savings=sum('savings'),investments=sum('investment'); return {month,income,deductions,expenses,savings,investments,available:income-deductions-expenses-savings-investments,savingsRate:income?(savings+investments)/income:0}; }
+export const budgetStatus=(spent:number,limit:number)=>({percent:limit?spent/limit*100:0,remaining:limit-spent});

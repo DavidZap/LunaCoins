@@ -1,0 +1,7 @@
+node_modules/
+dist/
+Microsoft/Windows/PowerShell/ModuleAnalysisCache/
+Microsoft/Windows/PowerShell/ModuleAnalysisCache
+.env
+.env.*
+!.env.example
