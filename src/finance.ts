@@ -1,4 +1,12 @@
-import type {Transaction,MonthlySummary} from './types';
+import type {Budget,Transaction,MonthlySummary} from './types';
 export const money=(n:number)=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(n).replace(/\u00a0/g,' ');
+const inMonth=(transaction:Transaction,month:string)=>transaction.date.startsWith(month);
+const isExpense=(transaction:Transaction)=>transaction.type==='expense'||transaction.type==='debt';
+const monthlyExpenses=(transactions:Transaction[],month:string)=>transactions.filter(transaction=>inMonth(transaction,month)&&isExpense(transaction));
+export const calculateBudgetedExpenses=(transactions:Transaction[],budgets:Budget[],month:string)=>{const budgetedIds=new Set(budgets.filter(budget=>budget.month===month&&budget.limit!==null).map(budget=>budget.categoryId));return monthlyExpenses(transactions,month).filter(transaction=>budgetedIds.has(transaction.categoryId)).reduce((total,transaction)=>total+transaction.amount,0)};
+export const calculateUnbudgetedExpenses=(transactions:Transaction[],budgets:Budget[],month:string)=>{const budgetedIds=new Set(budgets.filter(budget=>budget.month===month&&budget.limit!==null).map(budget=>budget.categoryId));return monthlyExpenses(transactions,month).filter(transaction=>!budgetedIds.has(transaction.categoryId)).reduce((total,transaction)=>total+transaction.amount,0)};
+export const calculateBudgetScenarioAvailable=(transactions:Transaction[],budgets:Budget[],month:string)=>{const current=summary(transactions,month);return current.income-current.deductions-calculateBudgetedExpenses(transactions,budgets,month)-current.savings-current.investments};
+export const calculateRealAvailable=(transactions:Transaction[],budgets:Budget[],month:string)=>calculateBudgetScenarioAvailable(transactions,budgets,month)-calculateUnbudgetedExpenses(transactions,budgets,month);
+export const calculateRemainingBudget=(transactions:Transaction[],budgets:Budget[],month:string)=>budgets.filter(budget=>budget.month===month&&budget.limit!==null).reduce((total,budget)=>total+budget.limit!,0)-calculateBudgetedExpenses(transactions,budgets,month);
 export function summary(transactions:Transaction[],month:string):MonthlySummary { const t=transactions.filter(x=>x.date.startsWith(month)); const sum=(type:string)=>t.filter(x=>x.type===type).reduce((a,x)=>a+x.amount,0); const income=sum('income'),deductions=sum('deduction'),expenses=sum('expense')+sum('debt'),savings=sum('savings'),investments=sum('investment'); return {month,income,deductions,expenses,savings,investments,available:income-deductions-expenses-savings-investments,savingsRate:income?(savings+investments)/income:0}; }
-export const budgetStatus=(spent:number,limit:number)=>({percent:limit?spent/limit*100:0,remaining:limit-spent});
+export const budgetStatus=(spent:number,limit:number|null)=>({percent:limit===null?null:limit?spent/limit*100:0,remaining:limit===null?null:limit-spent});
